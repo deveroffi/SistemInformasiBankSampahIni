@@ -1,0 +1,216 @@
+<?php
+
+namespace App\Http\Controllers\admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\hargaSampah;
+use App\Models\PesanNasabah;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use App\Models\LokasiPenjemputan;
+use App\Models\Catatan;
+use App\Models\User;
+
+class TSPNearestNeighborController extends Controller
+{
+    public function nearestNeighbor()
+    {
+        $user = Auth::user();
+        $Sampah = DB::table('pesan_nasabah')
+            ->join('users', 'pesan_nasabah.user_id', '=', 'users.id')
+            ->leftJoin('lokasi_penjemputan', 'pesan_nasabah.no_reff', '=', 'lokasi_penjemputan.no_reff')
+            ->select('pesan_nasabah.*', 'users.name as name', 'lokasi_penjemputan.koordinat', 'lokasi_penjemputan.lokasi', 'lokasi_penjemputan.status')
+            ->where('lokasi_penjemputan.status', 'disetujui')
+            ->get();
+        // Mendapatkan koordinat dari tabel pemesanan
+
+        // Inisialisasi array untuk menyimpan koordinat map
+        $Coordinates = [];
+
+        // Inisialisasi untuk  NearestNeighbor
+        $nearestNeighbor = null;
+
+        foreach ($Sampah as $sampah) {
+            if ($sampah->koordinat) {
+                $jarak = $this->newNearestNeighbor($sampah->koordinat);
+                $sampah->jarak = $jarak;
+            } else {
+                // Jika tidak ada latitude dan longitude, berikan nilai default
+                $sampah->jarak = null;
+            }
+
+        }
+
+        // Buat instance koleksi baru dan urutkan
+        $Sampah = collect($Sampah)->sortBy('jarak');
+
+
+        return view('admin.ruteNasabah', compact('user', 'Sampah'));
+    }
+
+
+
+
+    private function newNearestNeighbor($koordinat)
+    {
+
+        $tujuan_latitude = -7.322191655237305;
+        $tujuan_longitude = 112.73470170620698;
+
+        // Radius bumi dalam meter
+        $radius_bumi = 6371000;
+        list($latitude, $longitude) = explode(',', $koordinat);
+        // Konversi derajat ke radian
+        $latitude_radian = deg2rad($latitude);
+        $tujuan_latitude_radian = deg2rad($tujuan_latitude);
+        $selisih_latitude = deg2rad($tujuan_latitude - $latitude);
+        $selisih_longitude = deg2rad($tujuan_longitude - $longitude);
+
+        $a = sin($selisih_latitude / 2) * sin($selisih_latitude / 2) + cos($latitude_radian) * cos($tujuan_latitude_radian) * sin($selisih_longitude / 2) * sin($selisih_longitude / 2);
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+        $jarak = $radius_bumi * $c;
+
+        $lokasiPenjemputan = LokasiPenjemputan::firstOrNew([
+            'koordinat' => $koordinat
+            // 'latitude' => $latitude,
+            // 'longitude' => $longitude
+        ]);
+
+        // Set nilai jarak ke dalam atribut 'jarak' pada model
+        $lokasiPenjemputan->jarak = $jarak;
+
+        // Simpan model LokasiPenjemputan
+        $lokasiPenjemputan->save();
+        return $jarak;
+    }
+
+
+    public function detailtransaksiMasukNasabah($no_reff)
+    {
+        // Temukan data nasabah berdasarkan nomor referensi
+        $sampah = DB::table('pesan_nasabah')
+            ->join('users', 'pesan_nasabah.user_id', '=', 'users.id')
+            ->leftJoin('lokasi_penjemputan', 'pesan_nasabah.user_id', '=', 'lokasi_penjemputan.user_id') // Menggunakan LEFT JOIN agar data tetap tampil jika tidak ada lokasi_penjemputan
+            ->select('pesan_nasabah.*', 'users.name as name', 'lokasi_penjemputan.lokasi', 'lokasi_penjemputan.jarak')
+            ->where('pesan_nasabah.no_reff', $no_reff) // Filter berdasarkan nomor referensi
+            ->first(); // Ambil data pertama
+
+        if (!$sampah) {
+            // Handle jika data tidak ditemukan
+            return abort(404);
+        }
+
+        // Kirim data ke view untuk ditampilkan
+        return view('nasabah.detail', compact('sampah'));
+    }
+
+    public function updateSelesai(Request $request)
+    {
+        // Temukan data nasabah berdasarkan nomor referensi
+
+        $sampah = LokasiPenjemputan::where('no_reff', request()->no_reff)->first();
+        if (!$sampah) {
+            // Handle jika data tidak ditemukan
+            return abort(404);
+        }
+        $catatan = new Catatan();
+        $catatan->no_reff = $sampah->no_reff; // ID lokasi penjemputan
+        $catatan->catatan = $request->catatan; // Catatan dari formulir
+        $catatan->save();
+        // Update status menjadi "disetujui"
+
+        $sampah->update([
+            'status' => 'selesai',
+            // Simpan catatan yang dikirimkan dari formulir
+        ]);
+
+        $pesanNasabah = PesanNasabah::where('no_reff', $request->no_reff)->first();
+        if ($pesanNasabah) {
+            // Update berat sampah pada tabel pesan_nasabah
+            $pesanNasabah->update([
+                'berat_sampah' => $request->berat_sampah,
+            ]);
+    
+            
+            // Temukan harga sampah berdasarkan jenis sampah
+            $hargaSampah = hargaSampah::where('jenis_sampah', $pesanNasabah->jenis_sampah)->first();
+    
+            if ($hargaSampah) {
+                // Hitung total harga transaksi
+                $totalHargaTransaksi = $request->berat_sampah * $hargaSampah->harga;
+    
+                // Temukan pengguna berdasarkan user_id dari pesan nasabah
+                $user = User::find($pesanNasabah->user_id);
+    
+                if ($user) {
+                    // Update saldo pengguna
+                    $user->saldo += $totalHargaTransaksi;
+                    $user->save();
+                }
+            }}
+        // $pesanNasabah = PesanNasabah::where('no_reff', $request->no_reff)->first();
+        // if ($pesanNasabah) {
+        //     // Update berat sampah pada tabel pesan_nasabah
+        //     $pesanNasabah->update([
+        //         'berat_sampah' => $request->berat_sampah,
+        //     ]);
+        // }
+
+        // Redirect atau kirim respons JSON sesuai kebutuhan Anda
+        return redirect()->back()->with('success', 'Status berhasil diperbarui.');
+    }
+
+    // private function hitungJarakBaru($latitude, $longitude)
+    // {
+    //     // $tujuan_latitude = $lokasiTerdekat->latitude;
+    //     // $tujuan_longitude = $lokasiTerdekat->longitude;
+
+    //     // $tujuan_latitude =-7.29791005	;
+    //     // $tujuan_longitude = 112.76349771;
+
+    //     $lokasiTerdekat = DB::table('lokasi_penjemputan')
+    //         ->select('latitude', 'longitude')
+    //         ->orderBy('jarak') // Sesuaikan dengan kolom yang menyimpan jarak terkecil
+    //         ->first();
+
+    //     if ($lokasiTerdekat) {
+    //         $tujuan_latitude = $lokasiTerdekat->latitude;
+    //         $tujuan_longitude = $lokasiTerdekat->longitude;
+    //         $radius_bumi = 6371000;
+
+    //         // Konversi derajat ke radian
+    //         $latitude_radian = deg2rad($latitude);
+    //         $tujuan_latitude_radian = deg2rad($tujuan_latitude);
+    //         $selisih_latitude = deg2rad($tujuan_latitude - $latitude);
+    //         $selisih_longitude = deg2rad($tujuan_longitude - $longitude);
+
+    //         $a = sin($selisih_latitude / 2) * sin($selisih_latitude / 2) + cos($latitude_radian) * cos($tujuan_latitude_radian) * sin($selisih_longitude / 2) * sin($selisih_longitude / 2);
+    //         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+    //         $jarak = $radius_bumi * $c;
+
+    //         $lokasiPenjemputan = LokasiPenjemputan::firstOrNew([
+    //             'latitude' => $latitude,
+    //             'longitude' => $longitude
+    //         ]);
+
+    //         // Set nilai jarak ke dalam atribut 'jarak' pada model
+    //         $lokasiPenjemputan->jarak = $jarak;
+
+    //         return $jarak;
+    //         // Proses perhitungan jarak dan lainnya sesuai kebutuhan
+    //     } else {
+    //         // Tindakan jika tidak ada data dengan status 'disetujui'
+    //     }
+    //     // Radius bumi dalam kilometer
+
+    //     // }
+
+
+
+
+
+    // // }
+}
+
+

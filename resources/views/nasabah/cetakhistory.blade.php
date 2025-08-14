@@ -10,7 +10,7 @@
     <meta name="keywords"
         content="admin template, Chameleon admin template, dashboard template, gradient admin template, responsive admin template, webapp, eCommerce dashboard, analytic dashboard">
     <meta name="author" content="ThemeSelect">
-    <title>Bank Sampah UINSA Surabaya</title>
+     <title>Bank Sampah Ini</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <style>
         body {

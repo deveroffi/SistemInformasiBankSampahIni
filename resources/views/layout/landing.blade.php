@@ -1590,16 +1590,14 @@
                         <div class="carousel-container">
                             <div class="carousel-content">
                                 <h2 class="animate__animated animate__fadeInDown">Selamat Datang</h2>
-                                <h2 class="animate__animated animate__fadeInDown">Bank Sampah Syariah <span>UINSA Surabaya</span></h2>
-                                <p class="animate__animated animate__fadeInUp">Universitas Islam Negeri Sunan Ampel Surabaya sebagai salah satu perguruan tinggi yang memiliki komitmen menjaga keberlanjutan lingkungan sesuai dengan ajaran Islam Rahmatan Lil’Alamin mengajarkan kepada seluruh civitas akademika untuk mengelola lingkungan dalam setiap kegiatan tri dharma perguruan tinggi dan tata kelola lingkungan.</p>
+                                <h2 class="animate__animated animate__fadeInDown">Sistem Optimasi <span>Bank Sampah Ini</span></h2>
+                                <p class="animate__animated animate__fadeInUp">Sistem ini dibuat untuk mempermudah dalam tracking rute penjemputan</p>
                                     <a href="{{ route('login') }}"
                                     class="btn-get-started animate__animated animate__fadeInUp scrollto">Masuk</a>
                             </div>
                         </div>
                     </div>
-
                 </section><!-- End Contact Us Section -->
-
             </main>
   <!-- ======= Footer ======= -->
   <footer id="footer">

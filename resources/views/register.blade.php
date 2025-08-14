@@ -13,7 +13,7 @@
     <link href="assets/css/font-awesome.min.css" rel="stylesheet">
     <link href="assets/css/style.css" rel="stylesheet">
 
-    <title>Bank Sampah Syariah UINSA Surabaya</title>
+     <title>Bank Sampah Ini</title>
     <link rel="apple-touch-icon" href="theme-assets/images/ico/apple-icon-120.png">
     <link rel="shortcut icon" type="image/x-icon" href="theme-assets/images/ico/favicon.ico">
     <style>

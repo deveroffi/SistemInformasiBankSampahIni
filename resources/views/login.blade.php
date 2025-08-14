@@ -11,7 +11,7 @@
     <link href="assets/css/font-awesome.min.css" rel="stylesheet">
     <link href="assets/css/style.css" rel="stylesheet">
 
-    <title>Bank Sampah Syariah UINSA Surabaya</title>
+    <title>Bank Sampah Ini</title>
     <link rel="apple-touch-icon" href="theme-assets/images/ico/apple-icon-120.png">
     <link rel="shortcut icon" type="image/x-icon" href="theme-assets/images/ico/favicon.ico">
     <style>
@@ -60,11 +60,10 @@
                             <div class="text-center">
                                 <!-- <i class="fas fa-cubes fa-2x me-3" ></i> -->
                                 <span class="h1 fw-bold mb-0"style="letter-spacing: 4px"><b>BANK SAMPAH
-                                        SYARIAH</b></span>
+                                        INI</b></span>
                             </div>
                             <div class="mb-4"></div>
-                            <h5 class="text-center fw-normal mb-3 pb-3" style="letter-spacing: 4px;"><b>UINSA
-                                    Surabaya</b></h5>
+                            <h5 class="text-center fw-normal mb-3 pb-3" style="letter-spacing: 4px;"><b>v 0 .0 .1</b></h5>
                             @if (Session::has('error'))
                                 <div class="alert alert-danger">
                                     {{ Session::get('error') }}
